@@ -15,19 +15,6 @@ param.ref_r = state(7:12);
 % real SI TCVH state
 unscaled_rho = state(1:6).*targ_orb.EM.scales.state;
 
-% % extract segments of reference trajectory
-% [~,start_ind] = min(vecnorm(targ_orb.ref_traj(1:3,:)-unscaled_rho(1:3)));
-% range_ind = ceil(param.dt*param.n/targ_orb.ref_dt);
-% exceed_ind = start_ind + range_ind - size(targ_orb.ref_traj,2);
-% if exceed_ind > 0
-%     raw_ref_traj = [targ_orb.ref_traj(:,start_ind:end) repmat(targ_orb.ref_traj(:,end),[1,exceed_ind])];
-% else
-%     raw_ref_traj = targ_orb.ref_traj(:,start_ind:start_ind+range_ind);
-% end
-% % interpolation - assume the start time is aligned
-% interp.ref_traj = raw_ref_traj; interp.ref_dt = targ_orb.ref_dt;
-% param.ref_traj = state_interpolation(interp,param.ref_r,(0:(param.n-1))*param.dt,targ_orb);
-
 % construct initial optimization variable
 delta_x = repmat(unscaled_rho,[1,param.n])-param.ref_traj(1:param.n_state,:);
 delta_u = zeros([param.n_ctrl,param.n]); %-param.ref_traj(param.n_state+1:param.ntot,:);
@@ -69,8 +56,8 @@ ctrl = sol_contrl(1:3,1);
         end
 
         states = reshape(x(1:param.n*param.n_state),[param.n_state,param.n]);
-        contrl = reshape(x(param.n*param.n_state+1:param.n*param.ntot),[param.n_ctrl,param.n])';
-        val = sum(abs(contrl),"all") + 10*sum(vecnorm(states(1:3,:))) + sum(vecnorm(states(4:6,:)));
+        contrl = reshape(x(param.n*param.n_state+1:param.n*param.ntot),[param.n_ctrl,param.n]);
+        val = 10*sum(abs(contrl),"all") + 10*sum(vecnorm(states(1:3,:))) + sum(vecnorm(states(4:6,:)));
 
         % visualization
         % if mod(func_count,5000) == 0

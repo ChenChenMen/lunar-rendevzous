@@ -50,16 +50,25 @@ surf(approach_bot.x, approach_bot.y, approach_bot.z, 'FaceColor',[0.1 0.5 0.1],"
 rho_si = state(:,1:3)*targ_orb.EM.scales.length*1e3;
 rho_dot_si = state(:,4:6)*targ_orb.EM.scales.speed*1e3;
 if ~exist("no_quiver","var") || ~no_quiver
-    quiver3(rho_si(:,1),rho_si(:,2),rho_si(:,3), ...
-        rho_dot_si(:,1),rho_dot_si(:,2),rho_dot_si(:,3),...
-        "LineWidth",1,"Color","red");
+    % plot the traveled trajectory in solid blue
     plot3(rho_si(:,1),rho_si(:,2),rho_si(:,3),"b","LineStyle","-","LineWidth",3);
+    if exist("zoom_in","var") && zoom_in
+        % plot only the last velocity vector
+        quiver3(rho_si(end,1),rho_si(end,2),rho_si(end,3),...
+            rho_dot_si(end,1),rho_dot_si(end,2),rho_dot_si(end,3),"LineWidth",1,"Color","red");
+    else
+        % plot the entire velocity vector trajectory
+        quiver3(rho_si(:,1),rho_si(:,2),rho_si(:,3),...
+            rho_dot_si(:,1),rho_dot_si(:,2),rho_dot_si(:,3),"LineWidth",1,"Color","red");
+    end
 else
+    % plot the planned trajectory in dashed grey
     plot3(rho_si(:,1),rho_si(:,2),rho_si(:,3),"Color",[0.5 0.5 0.5],"LineStyle","--","LineWidth",1);
 end
+% plot features
 xlabel("$x_{TCVH}$, (m)"); ylabel("$y_{TCVH}$, (m)"); zlabel("$z_{TCVH}$, (m)");
-axis equal; 
-xlimit = xlim(); ylimit = ylim(); zlimit = zlim();
+axis equal; xlimit = xlim(); ylimit = ylim(); zlimit = zlim();
+% zoom in to center at the current position
 if exist("zoom_in","var") && zoom_in
     zoom_size = 5;
     xlimit = rho_si(end,1)+[-zoom_size zoom_size];
