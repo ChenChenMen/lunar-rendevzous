@@ -97,6 +97,7 @@ end
 %% interpolate the loaded trajectory
 targ_orb.mpc_horizon_steps = 10;
 if do_ctrl
+    fig = figure('position', [0, 0, 1920, 1200]);
     total_time = targ_orb.ref_dt*log_param.n;
     t = targ_orb.dt:targ_orb.dt:total_time;
     init_state = [rho*1e3; rho_dot*1e3; zeros(3,1)];
@@ -159,11 +160,17 @@ if do_ctrl
         axis equal; xlabel("$x_{TCVH}$, (m)"); ylabel("$y_{TCVH}$, (m)"); zlabel("$z_{TCVH}$, (m)"); view(-45,15)
         xlim([-view_range view_range]); ylim([-view_range view_range]); zlim([-view_range view_range]);
         title("Deputy S/C thruster actuation"); hold off
-        drawnow;
+        drawnow; F(i) = getframe(fig);
 
         % exact dynamics propagation
         state = singleRK4(dynFunc,time,targ_orb.dt/targ_orb.EM.scales.time,state,ctrl);
     end
+
+    vidname = "mpc_propagate.mp4";
+    v = VideoWriter(vidname,"MPEG-4"); open(v);
+    for k = 1:length(F)
+        writeVideo(v,F(k)); end
+    close(v);
 
     %% data analysis and record
     save("MPC_propagation.mat","t","sol_us_state","sol_state","sol_ctrl","traj_file_name");
