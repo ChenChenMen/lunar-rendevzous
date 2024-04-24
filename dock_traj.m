@@ -41,8 +41,15 @@ init_proxi_ctrl = 2*rand(param.n,param.num_ctrl)-1;
 init_x(1:end-1) = reshape([init_proxi_state init_proxi_ctrl],[param.num*param.n,1]);
 
 % use the previous run results
-load("rendezv_traj.mat","log_x");
-init_x = log_x;
+load("rendezv_traj_poscon.mat","log_x","log_param");
+interp.ref_traj = [[param.x0;0;0;0] [reshape(log_x(1:log_param.n*log_param.num_state),[log_param.n,log_param.num_state])';
+    reshape(log_x(log_param.n*log_param.num_state+1:log_param.n*log_param.num),[log_param.n,log_param.num_ctrl])']];
+interp.ref_dt = log_x(end);
+queried_time = (1:param.n)*log_x(end)*log_param.n/param.n;
+interp_result = state_interpolation(interp,queried_time);
+init_x = [reshape(interp_result(1:param.num_state,:)',[param.num_state*param.n,1]);
+    reshape(interp_result(param.num_state+1:param.num,:)',[param.num_ctrl*param.n,1]);
+    log_x(end)*log_param.n/param.n];
 
 % setup upper and lower bounds
 low_bounds = [-1*ones(param.n*3,1); -2/scales.speed*ones(param.n*3,1); -1*ones(param.n*3,1); 0];
@@ -142,7 +149,7 @@ fcost = cost_func(xtraj); [fc,fceq] = nonc_func(xtraj);
         % c = [c; vecnorm(states(4:6,:))'-2/param.scales.time];
 
         % visualization
-        if mod(func_count,500) == 0
+        if mod(func_count,5000) == 0
             plot_state = (states.*param.scales.EM2Prox)';
             targ_orb.axes(1) = subplot(2,2,1);
             tcvh_plot([],plot_state,targ_orb);
@@ -150,15 +157,17 @@ fcost = cost_func(xtraj); [fc,fceq] = nonc_func(xtraj);
             rho_dot_si = plot_state(:,4:6)*targ_orb.EM.scales.speed*1e3;
             targ_orb.axes(2) = subplot(2,2,2);
             time = dt*(1:size(states,2))*param.scales.time;
-            plot(time,rho_si(:,1),"k"); hold on
-            plot(time,rho_si(:,2),"b"); grid on
-            plot(time,rho_si(:,3),"r"); hold off
+            plot(time,rho_si(:,1),"k","LineWidth",2); hold on
+            plot(time,rho_si(:,2),"b","LineWidth",2); grid on
+            plot(time,rho_si(:,3),"r","LineWidth",2); hold off
+            legend("$\rho_x$","$\rho_y$","$\rho_z$","interpreter","latex");
             xlabel("Time, s"); ylabel("rel. distance, m");
 
             targ_orb.axes(2) = subplot(2,2,3);
-            plot(time,rho_dot_si(:,1),"k--"); hold on
-            plot(time,rho_dot_si(:,2),"b--"); grid on
-            plot(time,rho_dot_si(:,3),"r--"); hold off
+            plot(time,rho_dot_si(:,1),"k--","LineWidth",2); hold on
+            plot(time,rho_dot_si(:,2),"b--","LineWidth",2); grid on
+            plot(time,rho_dot_si(:,3),"r--","LineWidth",2); hold off
+            legend("$\delta v_x$","$\delta v_y$","$\delta v_z$","interpreter","latex");
             xlabel("Time, s"); ylabel("rel. velocity, m/s");
 
             targ_orb.axes(4) = subplot(2,2,4);

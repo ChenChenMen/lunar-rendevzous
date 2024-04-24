@@ -45,6 +45,11 @@ targ_orb.gateway.collision_free_zone_thickness = 5; % in m
 targ_orb.gateway.trajcone_contact_rad = 1*0.3048;
 targ_orb.gateway.trajcone_h = 80; % in m
 targ_orb.gateway.trajcone_poly = [10 0];
+targ_orb.gateway.velostep = [80 40 20 10 5 0]; 
+targ_orb.gateway.velolimit = [
+    2 1 0.5 0.25 0.1 0.1;
+    0.5 0.25 0.1 0.05 0.02 0.02;
+    0.5 0.25 0.1 0.05 0.02 0.02];
 % deputy spacecraft abstracted shape
 a = -pi:pi/2:pi; ph = pi/4;
 dpt.side.x = [cos(a+ph); cos(a+ph)]/cos(ph);
@@ -80,7 +85,7 @@ state = [chaser_rTCVH; chaser_rdotTCVH; target_rMCO; target_rdotMCO];
 targ_orb.EM.scales.state = 1e3*[targ_orb.EM.scales.length*ones(3,1); targ_orb.EM.scales.speed*ones(3,1)];
 
 %% load trajectory file if exist
-traj_file_name = "rendezv_traj.mat";
+traj_file_name = "rendezv_traj_poscon.mat";
 if exist(traj_file_name,"file")
     load(traj_file_name,"log_param","log_x");
     log_traj = reshape(log_x(1:log_param.n*log_param.num),[log_param.n,log_param.num]);
@@ -112,6 +117,7 @@ if do_ctrl
         time = t(i); future_ref_traj = ref_traj(:,i:i+targ_orb.mpc_horizon_steps-1);
         % compute the control input from MPC with actuation noise
         ctrl = rdvz_mpc(state,future_ref_traj,targ_orb).*(1+0.03*rand([3,1]));
+        ctrl = max(-1, min(ctrl,1));
 
         % record the states and controls
         us_state = state(1:6).*targ_orb.EM.scales.state;
@@ -146,6 +152,7 @@ if do_ctrl
         plot(t(1:i),state_diff(2,:),"g--","LineWidth",1); grid on
         plot(t(1:i),state_diff(3,:),"b-.","LineWidth",1);
         xlabel("t"); ylabel("$\delta x$, m");
+        limit_y = ylim(); ylim([min(-0.15,limit_y(1)) max(0.15,limit_y(2))]);
         legend("x TCVH","y TCVH","z TCVH","interpreter","latex","Location","southeast");
         title("Time history of tracking error"); hold off
 
@@ -160,6 +167,15 @@ if do_ctrl
         axis equal; xlabel("$x_{TCVH}$, (m)"); ylabel("$y_{TCVH}$, (m)"); zlabel("$z_{TCVH}$, (m)"); view(-45,15)
         xlim([-view_range view_range]); ylim([-view_range view_range]); zlim([-view_range view_range]);
         title("Deputy S/C thruster actuation"); hold off
+
+        targ_orb.axes(6) = subplot(2,3,6);
+        plot(t(1:i),sol_ctrl(1:i,1)*100,"r-","LineWidth",1); hold on
+        plot(t(1:i),sol_ctrl(1:i,2)*100,"g--","LineWidth",1); grid on
+        plot(t(1:i),sol_ctrl(1:i,3)*100,"b-.","LineWidth",1);
+        xlabel("t"); ylabel("u, $\%$"); ylim([-100 100]);
+        legend("x TCVH","y TCVH","z TCVH","interpreter","latex","Location","northeast");
+        title("Time history of control actuation"); hold off
+
         drawnow; F(i) = getframe(fig);
 
         % exact dynamics propagation

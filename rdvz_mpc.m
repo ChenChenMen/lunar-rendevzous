@@ -57,7 +57,7 @@ ctrl = sol_contrl(1:3,1);
 
         states = reshape(x(1:param.n*param.n_state),[param.n_state,param.n]);
         contrl = reshape(x(param.n*param.n_state+1:param.n*param.ntot),[param.n_ctrl,param.n]);
-        val = 10*sum(abs(contrl),"all") + 10*sum(vecnorm(states(1:3,:))) + sum(vecnorm(states(4:6,:)));
+        val = 10*sum(abs(contrl),"all") + 10*sum(vecnorm(states(1:3,:))) + sum(vecnorm(states(4:6,:))); % + 1000*norm(states(1:3,end));
 
         % visualization
         % if mod(func_count,5000) == 0
